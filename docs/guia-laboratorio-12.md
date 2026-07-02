@@ -350,6 +350,17 @@ class PDFMixin:
         return render_to_string(template, context, request=self.request)
 
 
+class InvoicePDFView(LoginRequiredMixin, PermissionRequiredMixin, View, PDFMixin):
+    permission_required = 'invoicing.view_factura'
+    pdf_template = 'invoicing/reports/invoice_pdf.html'
+
+    def get(self, request, pk):
+        factura = get_object_or_404(Factura.all_objects.select_related('cliente', 'usuario'), pk=pk)
+        detalles = factura.detalles.select_related('producto').all()
+        self.pdf_filename = f'factura_{factura.numero}.pdf'
+        return self.render_pdf({'factura': factura, 'detalles': detalles})
+
+
 class ReportsIndexView(LoginRequiredMixin, TemplateView):
     template_name = 'invoicing/reports/index.html'
 
@@ -695,17 +706,52 @@ class InvoiceListPDFView(LoginRequiredMixin, PermissionRequiredMixin, View, PDFM
 
 ---
 
+**Paso 5.4:** Crea `invoicing/templates/invoicing/reports/invoice_pdf.html`:
+
+```html
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Factura {{ factura.numero }}</title><link href="{% static 'invoicing/css/invoice-pdf.css' %}" rel="stylesheet"></head>
+<body>
+<div class="brand-header"><h1>Comercial "El Porvenir"</h1><div class="brand-sub">SISTEMA DE FACTURACION</div><div class="brand-meta">RUC: 1799999999001 | Av. Principal s/n | Tel: 0999999999</div></div>
+<div class="report-title"><h2>Factura {{ factura.numero }}</h2><p class="period">{{ factura.fecha_emision|date:'l, d \d\e F \d\e Y \a \l\a\s H:i' }}</p></div>
+<table class="nogrid" style="width:100%;margin-bottom:14px;"><tr>
+<td style="width:50%;border:none;padding:4px;"><strong>Cliente:</strong> {{ factura.cliente.nombre }}<br><span class="text-muted">{{ factura.cliente.cedula }} | {{ factura.cliente.email }}</span></td>
+<td style="width:50%;border:none;padding:4px;text-align:right;"><strong>Vendedor:</strong> {{ factura.usuario.get_full_name }}<br><strong>Metodo:</strong> {{ factura.metodo_pago }}</td>
+</tr></table>
+<div class="section-title">Detalle de Productos</div>
+<table class="data" border="1"><thead><tr>
+<th style="padding:2px 8px 2px 8px;">Producto</th><th style="padding:2px 8px 2px 8px;text-align:center;">Cant.</th>
+<th style="padding:2px 8px 2px 8px;text-align:right;">Precio</th><th style="padding:2px 8px 2px 8px;text-align:right;">Desc.%</th>
+<th style="padding:2px 8px 2px 8px;text-align:right;">IVA</th><th style="padding:2px 8px 2px 8px;text-align:right;">Total</th></tr></thead>
+<tbody>{% for d in detalles %}<tr>
+<td style="padding:2px 8px 2px 8px;">{{ d.producto.nombre }}</td><td style="padding:2px 8px 2px 8px;text-align:center;">{{ d.cantidad }}</td>
+<td style="padding:2px 8px 2px 8px;text-align:right;">${{ d.precio_unitario|floatformat:2 }}</td><td style="padding:2px 8px 2px 8px;text-align:right;">{{ d.descuento_pct|floatformat:1 }}%</td>
+<td style="padding:2px 8px 2px 8px;text-align:right;">${{ d.iva_valor|floatformat:2 }}</td><td style="padding:2px 8px 2px 8px;text-align:right;font-weight:700;">${{ d.total|floatformat:2 }}</td>
+</tr>{% endfor %}</tbody></table>
+<div class="totals-box"><div class="line">Subtotal: <span>${{ factura.subtotal|floatformat:2 }}</span></div>
+<div class="line">IVA 15%: <span>${{ factura.iva_total|floatformat:2 }}</span></div>
+<div class="line total">TOTAL: <span>${{ factura.total|floatformat:2 }}</span></div></div>
+{% if factura.observaciones %}<p style="margin-top:12px;"><strong>Observaciones:</strong><br>{{ factura.observaciones }}</p>{% endif %}
+<div class="report-footer"><p class="footer-brand">SIF - Sistema de Facturacion</p><p>Documento generado el {% now "d/m/Y \a \l\a\s H:i" %}</p></div>
+</body></html>
+```
+
+---
+
 ## Fase 6 — Agregar rutas
 
 **Paso 6.1:** Abre `invoicing/urls.py` y agrega los imports y rutas de los reportes:
 
 ```python
 from .report_views import (
-    DailyClosePDFView, InvoiceListPDFView, ReportsIndexView,
+    DailyClosePDFView, InvoiceListPDFView, InvoicePDFView, ReportsIndexView,
 )
 
 # Al final de urlpatterns, agrega:
 path('reports/', ReportsIndexView.as_view(), name='reports_index'),
+path('reports/invoice/<int:pk>/pdf/', InvoicePDFView.as_view(), name='invoice_pdf'),
 path('reports/daily-close/', DailyClosePDFView.as_view(), name='daily_close_pdf'),
 path('reports/invoice-list/', InvoiceListPDFView.as_view(), name='invoice_list_pdf'),
 ```

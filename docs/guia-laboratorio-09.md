@@ -270,7 +270,6 @@ class FacturaService:
 
         # Restaurar stock por cada detalle
         for det in factura.detalles.all():
-            from catalog.models import Producto
             Producto.objects.filter(pk=det.producto_id).update(
                 stock=F('stock') + det.cantidad
             )
