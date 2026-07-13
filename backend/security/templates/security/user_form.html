@@ -1,0 +1,36 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+{% block title %}{% if user_obj %}Editar{% else %}Nuevo{% endif %} Usuario{% endblock %}
+{% block page_title %}{% if user_obj %}Editar{% else %}Nuevo{% endif %} Usuario{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm" style="max-width:600px">
+  <div class="card-body p-4">
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+      <div class="d-flex gap-2">
+        <button type="submit" id="btnSubmit" class="btn btn-primary">
+          <i class="bi bi-check-lg"></i> {% if user_obj %}Guardar cambios{% else %}Crear usuario{% endif %}
+        </button>
+        <a href="{% url 'security:user_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('btnSubmit')?.addEventListener('click', function() {
+  this.classList.add('skeleton-btn');
+});
+</script>
+{% endblock %}

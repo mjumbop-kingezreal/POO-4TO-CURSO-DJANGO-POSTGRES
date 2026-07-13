@@ -1,0 +1,58 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+{% block title %}Productos{% endblock %}
+{% block page_title %}Gestión de Productos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <form method="get" class="d-flex gap-2 flex-wrap">
+    <input type="text" name="q" class="form-control form-control-sm" style="width:200px" placeholder="Buscar..." value="{{ request.GET.q }}">
+    <select name="categoria" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+      <option value="">Todas las categorías</option>
+      {% for c in categorias %}<option value="{{ c.pk }}" {% if request.GET.categoria == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i></button>
+  </form>
+  <a href="{% url 'catalog:producto_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Nuevo Producto</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr><th>Código</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Categoría</th><th>Estado</th><th></th></tr>
+    </thead>
+    <tbody>
+      <tr class="skeleton-row d-none" id="loadingRows">
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      {% for p in producto_list %}
+      <tr>
+        <td class="small">{{ p.codigo }}</td>
+        <td>
+          {% if p.imagen %}<img src="{{ p.imagen.url }}" width="30" height="30" class="rounded me-1" style="object-fit:cover">{% endif %}
+          {{ p.nombre }}
+        </td>
+        <td>${{ p.precio|floatformat:2 }}</td>
+        <td>
+          <span class="badge {% if p.stock == 0 %}bg-danger{% elif p.stock < p.stock_minimo %}bg-warning text-dark{% else %}bg-success{% endif %}">
+            {{ p.stock }}
+          </span>
+        </td>
+        <td class="small">{{ p.categoria.nombre }}</td>
+        <td>{% if p.is_active %}<span class="badge bg-success">Activo</span>{% else %}<span class="badge bg-secondary">Inactivo</span>{% endif %}</td>
+        <td class="text-end">
+          <a href="{% url 'catalog:producto_update' p.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+          {% if p.is_active %}
+          <form method="post" action="{% url 'catalog:producto_deactivate' p.pk %}" class="d-inline">
+            {% csrf_token %}<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Desactivar {{ p.nombre }}?')"><i class="bi bi-x-circle"></i></button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No hay productos.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'catalog/_pagination.html' %}
+{% endblock %}

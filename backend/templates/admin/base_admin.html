@@ -1,0 +1,124 @@
+{% load static %}
+{% load menu_tags %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SIF — Panel{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="{% static 'core/css/admin.css' %}" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="admin-wrapper">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'home' %}" class="sidebar-brand">
+          <i class="bi bi-receipt-cutoff"></i>
+          <span class="brand-text">SIF</span>
+        </a>
+        <button class="sidebar-toggle d-lg-none" id="sidebarClose" aria-label="Cerrar menú">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="sidebar-search">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-transparent border-0 text-secondary">
+            <i class="bi bi-search"></i>
+          </span>
+          <input type="text" class="form-control form-control-sm bg-transparent border-0 text-light"
+                 id="menuFilter" placeholder="Buscar menú...">
+        </div>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        {% for module in menu_modules %}
+          {% if module|has_access:request.user %}
+          <div class="sidebar-module">
+            <div class="module-header" data-target="ch-{{ module.id }}">
+              <i class="bi {{ module.icon }} module-icon"></i>
+              <span class="module-name">{{ module.name }}</span>
+              {% with children=module|accessible_children:request.user %}
+                {% if children %}
+                  <i class="bi bi-chevron-down module-chevron"></i>
+                {% endif %}
+              {% endwith %}
+            </div>
+            {% with children=module|accessible_children:request.user %}
+              {% if children %}
+              <div class="module-children" id="ch-{{ module.id }}">
+                {% for child in children %}
+                  {% if child.url_name %}
+                  <a href="{% url child.url_name %}" class="child-link">
+                    <i class="bi {{ child.icon }}"></i><span>{{ child.name }}</span>
+                  </a>
+                  {% else %}
+                  <span class="child-link disabled">
+                    <i class="bi {{ child.icon }}"></i><span>{{ child.name }}</span>
+                    <small class="text-secondary">próximamente</small>
+                  </span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              {% endif %}
+            {% endwith %}
+          </div>
+          {% endif %}
+        {% empty %}
+          <div class="px-3 py-2">
+            <div class="skeleton skeleton-text mb-2"></div>
+            <div class="skeleton skeleton-text-sm mb-2"></div>
+            <div class="skeleton skeleton-text mb-2"></div>
+            <div class="skeleton skeleton-text-sm mb-2"></div>
+            <div class="skeleton skeleton-text mb-2"></div>
+          </div>
+        {% endfor %}
+      </nav>
+      <div class="sidebar-footer">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-person-circle fs-5 me-2 text-secondary"></i>
+          <div class="small">
+            <div class="text-light">{{ user.get_full_name|default:user.email }}</div>
+            <form method="post" action="{% url 'security:logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-link text-secondary p-0">
+                <i class="bi bi-box-arrow-right me-1"></i>Cerrar sesión
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <!-- MAIN -->
+    <div class="main-content">
+      <header class="main-header">
+        <div class="d-flex align-items-center">
+          <button class="btn btn-header me-3" id="sidebarToggle" aria-label="Abrir menú">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+          <div>
+            <h5 class="mb-0 page-title">{% block page_title %}Panel Principal{% endblock %}</h5>
+            <small class="text-muted">{% block page_subtitle %}{% now "d/m/Y" %}{% endblock %}</small>
+          </div>
+        </div>
+      </header>
+      <div class="content-area">
+        {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+            {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+          {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'core/js/admin.js' %}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

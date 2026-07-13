@@ -26,9 +26,8 @@
 
   function setLoading(loading) {
     els.submit.disabled = loading;
-    els.submit.classList.toggle('skeleton-btn', loading);
     els.submit.innerHTML = loading
-      ? 'Ingresando...'
+      ? '<span class="spinner-border spinner-border-sm me-2"></span>Ingresando...'
       : '<i class="bi bi-box-arrow-in-right me-2"></i>Iniciar sesi\u00f3n';
   }
 

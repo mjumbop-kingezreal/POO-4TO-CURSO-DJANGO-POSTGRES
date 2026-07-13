@@ -41,3 +41,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    def soft_delete(self):
+        """Marca el usuario como inactivo (sin borrarlo físicamente)."""
+        self.is_active = False
+        self.save(update_fields=['is_active', 'updated_at'])
